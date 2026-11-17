@@ -775,6 +775,7 @@
       let posCategory = 'All';
       let posCart = [];
       let isSubmittingBill = false;
+      let isCreatingAccount = false;
       let dashChartMode = 'daily';
       let dashSalesChartInstance = null;
       let currentReportRange = 'monthly';
@@ -1053,6 +1054,12 @@
       });
       document.getElementById('signup-form').addEventListener('submit', async (e) => {
         e.preventDefault();
+        if (isCreatingAccount) return;
+        isCreatingAccount = true;
+        const submitButton = document.querySelector('#signup-form button[type="submit"]');
+        const originalButtonText = submitButton.textContent;
+        submitButton.disabled = true;
+        submitButton.textContent = 'Creating account…';
         const shopName = document.getElementById('signup-shop').value.trim();
         const ownerName = document.getElementById('signup-owner').value.trim();
         const email = document.getElementById('signup-email').value.trim().toLowerCase();
@@ -1070,7 +1077,20 @@
           }
           await enterCloudSession(makeSession(auth, shopName, ownerName), true, seed);
           showToast('Cloud shop account created. Your data is synced online.');
-        } catch (err) { showToast(err.message, 'error'); }
+        } catch (err) {
+          const message = String(err.message || 'Account creation failed');
+          if (/email rate limit exceeded|over_email_send_rate_limit/i.test(message)) {
+            showToast('Supabase email limit reached. Wait for it to reset, or the site owner must connect custom SMTP for public signups.', 'error');
+          } else if (/email_address_not_authorized/i.test(message)) {
+            showToast('Supabase’s test mailer only sends to project team addresses. The site owner must connect custom SMTP for public signups.', 'error');
+          } else {
+            showToast(message, 'error');
+          }
+        } finally {
+          isCreatingAccount = false;
+          submitButton.disabled = false;
+          submitButton.textContent = originalButtonText;
+        }
       });
       document.getElementById('logout-btn').addEventListener('click', async () => {
         try { if (currentSession) await supabaseFetch('/auth/v1/logout', { method: 'POST' }, currentSession.accessToken); } catch (e) {}
