@@ -970,7 +970,7 @@
         const session = await activeSession();
         const rows = await supabaseFetch('/rest/v1/stockwise_shop_data?select=payload&user_id=eq.' + encodeURIComponent(accountId), {}, session.accessToken);
         if (rows && rows.length && rows[0].payload) return rows[0].payload;
-        const fresh = createSeedData(session.shopName, session.ownerName, true);
+        const fresh = createSeedData(session.shopName, session.ownerName, false);
         appData = fresh;
         persistData();
         return fresh;
@@ -1001,7 +1001,7 @@
           expiresAt: Date.now() + Number(authResult.expires_in || 3600) * 1000
         };
       }
-      async function enterCloudSession(session, isNewAccount = false, seed = true) {
+      async function enterCloudSession(session, isNewAccount = false, seed = false) {
         storeSession(session);
         if (isNewAccount) {
           appData = createSeedData(session.shopName, session.ownerName, seed);
